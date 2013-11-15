@@ -6,21 +6,11 @@ Meteor.publish("members", function () {
 if (Meteor.isServer) {
   Meteor.startup(function () {
 
+    Members = new Meteor.Collection("members");
+    
+    // Publish complete set of patients to all clients.
+    Meteor.publish('members', function (user) {
+      	return Members.find({"userid": user});
+    });
   });
 }
-
-Meteor.methods({
-  addFamilyMember: function (member) {
-  	console.log("member! " + member);
-  	if (Meteor.userId()) {
-	  	member.user_id = Meteor.userId();
-	  	member._id = Random.id();
-	    Members.insert(member);
-
-	    member.responseMessage = "Member created!";
-	    return member;
-	} else {
-		return null;
-	}
-  },
-});
