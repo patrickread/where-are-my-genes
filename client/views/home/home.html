@@ -1,0 +1,79 @@
+<template name="home">
+  <section class="tree">
+  		<div class="alert-spacer">
+  			{{> alert}}
+  		</div>
+  		{{#if currentUser}}
+  			<div class="tree-main">
+			  	{{#each members}}
+			      	{{> member}}
+			    {{else}}
+			    	<button class="btn btn-primary add add-yourself">Add yourself!</button>
+			    {{/each}}
+			</div>
+		    {{#if members.length}}
+		    	<button class="btn btn-primary add add-new-member">Add a new family member!</button>
+		    {{/if}}
+	    {{/if}}
+	</section>
+	{{> add}}
+</template>
+
+<template name="member">
+	<div class="family-member round-rect-5">
+		<div>{{first_name}} {{middle_name}} {{last_name}}</div>
+		<div>{{dateInfo}}</div>
+		<div>
+			<button class="btn btn-info edit">Edit</button>
+		</div>
+	</div>
+</template>
+
+<template name="add">
+	<section class="add-member-form round-rect-5">
+		<form>
+			<fieldset>
+		    	<legend>Add a family member</legend>
+		    	<div class="inner-form">
+				    <div class="form-field">
+					    <label for="first-name">First Name</label>
+					    <input id="first-name" class="form-control" type="text" placeholder="First Name">
+					</div>
+					<div class="form-field">
+					    <label for="middle-name">Middle Name</label>
+					    <input id="middle-name" class="form-control" type="text" placeholder="Middle Name">
+					</div>
+					<div class="form-field">
+					    <label for="last-name">Last Name</label>
+					    <input id="last-name" class="form-control" type="text" placeholder="Last Name">
+				    </div>
+				    <div class="form-field">
+					    <label for="date-of-birth">Date of Birth</label>
+					    <input id="date-of-birth" class="form-control datepicker" size="16" type="text" value="01-01-2013">
+				    </div>
+				    <div class="form-field chk-alive-box">
+				    	<label for="chk-alive">Alive?</label>
+					    <input id="chk-alive" size="16" type="checkbox" value="Alive?" checked="true">
+				    </div>
+				    <div class="form-field date-of-death-field">
+					    <label for="date-of-death">Date of Death</label>
+					    <input id="date-of-death" class="form-control datepicker" size="16" type="text" value="01-01-2013">
+				    </div>
+				    <div class="form-field submit-div">
+				    	<button class="btn btn-primary add-family-submit">OK!</button>
+				    </div>
+				    <div class="form-field">
+				    	<span class="link delete">Delete</span>
+				    </div>
+				</div>
+		  </fieldset>
+		  <button class="cancel-button btn btn-danger">X</button>
+		</form>
+	</section>
+</template>
+
+<template name="alert">
+	<div id="main-alert" class="alert alert-success">
+
+	</div>
+</template>

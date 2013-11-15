@@ -1,0 +1,186 @@
+/* CSS declarations go here */
+
+body
+{
+	text-align: center;
+}
+
+.main
+{
+	max-width: 960px;
+	height: 600px;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: left;
+	position: relative;
+}
+
+header
+{
+	background-color: #428bca;
+	color: #FFF;
+	height: 75px;
+}
+
+.title
+{
+	float: left;
+	height: 100%;
+	padding-left: 10px;
+}
+
+.alert-spacer
+{
+	height: 30px;
+}
+
+#main-alert
+{
+	display: none;
+}
+
+.login
+{
+	float: right;
+	text-align: right;
+	padding: 10px;
+	width: 200px;
+	height: 100%;
+	position: relative;
+}
+
+#login-buttons
+{
+	position: absolute;
+	bottom: 20px;
+	right: 15px;
+	display: block;
+	text-align: right;
+	width: 100%;
+}
+
+.login-link-text
+{
+	color: #FFF;
+}
+
+.tree
+{
+	clear: both;
+	text-align: center;
+	margin-top: 30px;
+	position: relative;
+}
+
+.tree-main
+{
+	padding-top: 65px;
+}
+
+.add-member-form
+{
+	display: none;
+	width: 500px;
+	height: 400px;
+	margin-left: auto;
+	margin-right: auto;
+	border: 1px solid lightgray;
+	padding: 5px;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin-left: -250px;
+	margin-top: -110px;
+	background-color: #CACACA;
+}
+
+.add-new-member
+{
+	position: absolute;
+	top: 35px;
+	right: 10px;
+}
+
+.inner-form
+{
+	width: 400px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.form-field
+{
+	width: 400px;
+	clear: both;
+}
+
+.form-field input
+{
+	width: 175px;
+	float: left;
+}
+
+.form-field label
+{
+	width: 150px;
+	float: left;
+	margin-right: 10px;
+	line-height: 30px;
+}
+
+.add-member-form form
+{
+	position: relative;
+}
+
+form .date-of-death-field
+{
+	display: none;
+}
+
+form button
+{
+	clear: both;
+	margin-top: 20px;
+}
+
+.round-rect-5
+{
+	-moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -khtml-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.family-member
+{
+	width: 250px;
+	height: 150px;
+	border: 1px solid lightgray;
+	padding: 5px;
+	float: left;
+	margin: 10px;
+}
+
+.submit-div
+{
+	text-align: center;
+}
+
+.cancel-button
+{
+	position: absolute;
+	top: -26px;
+	right: -6px;
+}
+
+.link
+{
+	text-decoration: underline;
+}
+
+.form-field .delete
+{
+	cursor: pointer;
+	color: Red;
+}
