@@ -1,0 +1,10 @@
+{
+  "packages": {
+<<<<<<< HEAD
+    "iron-router": {},
+    "accounts-entry": {}
+=======
+    "jquery-ui-bootstrap": {}
+>>>>>>> 6fc5ef9eebc9dd10006d701b115dc7084f18f452
+  }
+}
