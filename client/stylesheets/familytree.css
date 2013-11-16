@@ -34,11 +34,6 @@ header
 	height: 30px;
 }
 
-#main-alert
-{
-	display: none;
-}
-
 .login
 {
 	float: right;
@@ -79,9 +74,8 @@ header
 
 .add-member-form
 {
-	display: none;
 	width: 500px;
-	height: 400px;
+	height: 450px;
 	margin-left: auto;
 	margin-right: auto;
 	border: 1px solid lightgray;
@@ -183,4 +177,10 @@ form button
 {
 	cursor: pointer;
 	color: Red;
+}
+
+.user_photo
+{
+	width: 100px;
+	height: 100px;
 }

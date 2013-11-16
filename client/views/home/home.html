@@ -16,7 +16,7 @@
 		    {{/if}}
 	    {{/if}}
 	</section>
-	{{> add}}
+	{{> addEditDialog}}
 </template>
 
 <template name="member">
@@ -29,35 +29,49 @@
 	</div>
 </template>
 
-<template name="add">
+<template name="addEditDialog">
 	<section class="add-member-form round-rect-5">
 		<form>
 			<fieldset>
 		    	<legend>Add a family member</legend>
 		    	<div class="inner-form">
+		    		<div class="form-field" id="user_photo_container">
+		    			<label for="photo-upload">Photo</label>
+		    			{{#if member.photo_url}}
+		    				<img class="user_photo" src="{{member.photo_url}}" />
+		    			{{else}}
+			    			{{#S3 callback="s3UploadFinished"}}
+	    						<input id="photo-upload" class="btn" type="file">
+							{{/S3}}
+						{{/if}}
+		    		</div>
 				    <div class="form-field">
 					    <label for="first-name">First Name</label>
-					    <input id="first-name" class="form-control" type="text" placeholder="First Name">
+					    <input id="first-name" class="form-control" type="text" placeholder="First Name" value="{{member.first_name}}">
 					</div>
 					<div class="form-field">
 					    <label for="middle-name">Middle Name</label>
-					    <input id="middle-name" class="form-control" type="text" placeholder="Middle Name">
+					    <input id="middle-name" class="form-control" type="text" placeholder="Middle Name" value="{{member.middle_name}}">
 					</div>
 					<div class="form-field">
 					    <label for="last-name">Last Name</label>
-					    <input id="last-name" class="form-control" type="text" placeholder="Last Name">
+					    <input id="last-name" class="form-control" type="text" placeholder="Last Name" value="{{member.last_name}}">
 				    </div>
 				    <div class="form-field">
 					    <label for="date-of-birth">Date of Birth</label>
-					    <input id="date-of-birth" class="form-control datepicker" size="16" type="text" value="01-01-2013">
+					    <input id="date-of-birth" class="form-control datepicker" size="16" type="text" placeholder="01-01-2013" value="{{member.date_of_birth_string}}">
 				    </div>
 				    <div class="form-field chk-alive-box">
 				    	<label for="chk-alive">Alive?</label>
-					    <input id="chk-alive" size="16" type="checkbox" value="Alive?" checked="true">
+				    	{{#unless member.date_of_death}}
+					    	<input id="chk-alive" size="16" type="checkbox" value="Alive?" checked="true">
+					    {{else}}
+					    	<input id="chk-alive" size="16" type="checkbox" value="Alive?" checked="false">
+					    {{/unless}}
 				    </div>
 				    <div class="form-field date-of-death-field">
 					    <label for="date-of-death">Date of Death</label>
-					    <input id="date-of-death" class="form-control datepicker" size="16" type="text" value="01-01-2013">
+					    <input id="date-of-death" class="form-control datepicker" size="16" type="text" placeholder="01-01-2013" value="{{member.date_of_death_string}}">
 				    </div>
 				    <div class="form-field submit-div">
 				    	<button class="btn btn-primary add-family-submit">OK!</button>

@@ -3,7 +3,9 @@
   "dependencies": {
     "basePackages": {
       "iron-router": {},
-      "accounts-entry": {}
+      "accounts-entry": {},
+      "knox": {},
+      "s3": {}
     },
     "packages": {
       "iron-router": {
@@ -13,8 +15,18 @@
       },
       "accounts-entry": {
         "git": "https://github.com/BeDifferential/accounts-entry.git",
-        "tag": "v0.4.2",
-        "commit": "d846e901d7478240050471bcd5afff7de12b3683"
+        "tag": "v0.4.4",
+        "commit": "56cee1ff5afe2ce5be7b749cd74fc939fc9ce781"
+      },
+      "knox": {
+        "git": "https://github.com/ewindso/meteor-knox.git",
+        "tag": "v0.8.5.2",
+        "commit": "62c778c40f89884cb10cfd2097e614e01ca8b8cc"
+      },
+      "s3": {
+        "git": "https://github.com/Lepozepo/S3.git",
+        "tag": "v1.2.1",
+        "commit": "44c83a98c4c4354289592ffbe87275bc70f43b02"
       }
     }
   }

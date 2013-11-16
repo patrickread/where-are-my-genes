@@ -13,3 +13,5 @@ accounts-entry
 accounts-password
 accounts-facebook
 accounts-google
+knox
+s3

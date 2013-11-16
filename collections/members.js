@@ -16,7 +16,7 @@ Members.allow({
 	remove: function (userId, members) {
 		var canDelete = true;
 		for (var i=0; i<members.length; i++) {
-			if (userId == undefined || members[i].user_i !== userId) {
+			if (userId == undefined || members[i].user_id !== userId) {
 				return false;
 			}
 		}
