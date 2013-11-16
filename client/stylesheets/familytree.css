@@ -34,6 +34,25 @@ header
 	height: 30px;
 }
 
+.buttons
+{
+	float: left;
+	height: 75px;
+	width: 200px;
+	position: relative;
+	margin-left: 100px;
+}
+
+.add-new-member
+{
+	background-image: url('/images/add_button.png');
+	background-size: cover;
+	background-color: transparent;
+	border: 0px;
+	width: 40px;
+	height: 40px;
+}
+
 .login
 {
 	float: right;
@@ -70,6 +89,15 @@ header
 .tree-main
 {
 	padding-top: 65px;
+	z-index: 1;
+	overflow: scroll;
+	position: relative;
+	min-height: 500px;
+}
+
+.tree-canvas
+{
+	padding-top: 65px;
 }
 
 .add-member-form
@@ -86,13 +114,7 @@ header
 	margin-left: -250px;
 	margin-top: -110px;
 	background-color: #CACACA;
-}
-
-.add-new-member
-{
-	position: absolute;
-	top: 35px;
-	right: 10px;
+	z-index: 10;
 }
 
 .inner-form
@@ -149,11 +171,12 @@ form button
 .family-member
 {
 	width: 250px;
-	height: 150px;
+	height: 200px;
 	border: 1px solid lightgray;
-	padding: 5px;
+	padding: 15px 5px 5px 5px;
 	float: left;
 	margin: 10px;
+	position: absolute;
 }
 
 .submit-div

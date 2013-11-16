@@ -1,6 +1,11 @@
 var showAddEditDialog = false;
 var showMainAlert = false;
+var mainAlertText = "";
+var familyMemberWidth = 250;
+var familyMemberHeight = 200;
+var familyMemberMargin = 10;
 Meteor.subscribe("members");
+var members;
 
 if (Meteor.isClient) {
   Template.layout.events({
@@ -9,27 +14,25 @@ if (Meteor.isClient) {
       $(".add").hide();
       showAddEditDialog = true;
       $(".add-member-form").show();
+      Session.set("parents", null);
       return false;
     },
     'click .add-yourself' : function() {
       $(".add").hide();
       $(".add-member-form").show();
+      Session.set("parents", null);
       fillInUsername();
       return false;
     }
   });
   Template.addEditDialog.events({
     'click .add-family-submit' : function () {
-      $(".add").show();
-      showAddEditDialog = false;
-      $(".add-member-form").hide();
+      closeAddEditDialog();
       addFamilyMember();
       return false;
     },
     'click .cancel-button' : function () {
-      $(".add").show();
-      showAddEditDialog = false;
-      $(".add-member-form").hide();
+      closeAddEditDialog();
       return false;
     },
     'click #chk-alive' : function () {
@@ -42,7 +45,13 @@ if (Meteor.isClient) {
     'click .delete' : function () {
       var member = Session.get("current_member");
       if (member !== undefined) {
-        Members.remove(member._id);
+        Members.remove(member._id, function (error) {
+          if (error === undefined) {
+            closeAddEditDialog();
+          } else {
+            alert("Error while deleting! " + error.toString());
+          }
+        });
       }
       return false;
     },
@@ -72,15 +81,21 @@ Template.home.rendered = function () {
 
   if (!showMainAlert) {
     $("#main-alert").hide();
+  } else {
+    $("#main-alert").text(mainAlertText);
+  }
+
+  for (var i=0; i<members.length; i++) {
+    if (members[i].x_pos !== undefined && members[i].y_pos !== undefined) {
+      $("#" + members[i]._id).css("left", members[i].x_pos);
+      $("#" + members[i]._id).css("top", members[i].y_pos);
+    }
   }
 };
 
 Template.home.members = function () {
-  var members = Members.find().fetch();
-  for (var i=0; i<members.length; i++) {
-    var memberDate = getMemberDateInfo(members[i]);
-    members[i].dateInfo = memberDate;
-  }
+  members = Members.find().fetch();
+  placeMembers(members);
   return members;
 }
 
@@ -95,13 +110,64 @@ Template.addEditDialog.member = function () {
   return {};
 }
 
-function addFamilyMember() {
+function placeMembers(members) {
+  var firstMember;
+  var templateName = "member";
+  var x = 0;
+  for (var i=0; i<members.length; i++) {
+    if (members[i].parents === null || members[i].parents === undefined) {
+      positionMember(members, members[i], x, 0);
+      x += familyMemberWidth + familyMemberMargin;
+    }
+  }
+}
+
+function positionMember(members, theMember, x, y) {
+  theMember.x_pos = x;
+  theMember.y_pos = y;
+  var children = findMemberChildren(members, theMember._id);
+  var childrenWidth = children.length * (familyMemberWidth + familyMemberMargin);
+  var startX = x - childrenWidth / 2;
+  for(var i=0; i<children.length; i++) {
+    positionMember(members, 
+                  children[i],
+                  startX + i*(familyMemberWidth + familyMemberMargin),
+                  y + familyMemberHeight + familyMemberMargin);
+  }
+}
+
+function findMemberChildren(members, memberID) {
+  var children = [];
+  for (var i=0; i<members.length; i++) {
+    if (members[i].parents !== undefined) {
+      if (members[i].parents.indexOf(memberID) !== -1) {
+        children.push(members[i]);
+      }
+    }
+  }
+
+  return children;
+}
+
+function findMemberById(members, id) {
+  for (member in members) {
+    if (member._id === id) {
+      return member;
+    }
+  }
+
+  return undefined;
+}
+
+function addFamilyMember(parent_ids) {
   var member = {
                   first_name: $("#first-name").val(), 
                   middle_name: $("#middle-name").val(), 
                   last_name: $("#last-name").val(),
                   date_of_birth: new Date($("#date-of-birth").val()),
-                  photo_url: $(".user_photo").attr("src")
+                  date_of_death: new Date($("#date-of-death").val()),
+                  photo_url: $(".user_photo").attr("src"),
+                  parents: Session.get("parents")
                 };
   if (Session.get("current_member") !== undefined) {
     member._id = Session.get("current_member")._id;
@@ -111,6 +177,7 @@ function addFamilyMember() {
       if (result.responseMessage !== undefined) {
         alert(result.responseMessage);
         Session.set("current_member", undefined);
+        Session.set("parents", undefined);
       }
     }
   });
@@ -127,6 +194,7 @@ function editFamilyMember(member) {
 function alert(message) {
   $("#main-alert").show();
   $("#main-alert").text(message);
+  mainAlertText = message;
   showMainAlert = true;
 }
 
@@ -145,6 +213,12 @@ function fillInUsername() {
       $("#last-name").val(names[1]);
     }
   }
+}
+
+function closeAddEditDialog() {
+  $(".add").show();
+  showAddEditDialog = false;
+  $(".add-member-form").hide();
 }
 
 /* HELPER METHODS */

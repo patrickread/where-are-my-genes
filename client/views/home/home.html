@@ -5,26 +5,27 @@
   		</div>
   		{{#if currentUser}}
   			<div class="tree-main">
-			  	{{#each members}}
+  				{{#each members}}
 			      	{{> member}}
 			    {{else}}
 			    	<button class="btn btn-primary add add-yourself">Add yourself!</button>
 			    {{/each}}
-			</div>
-		    {{#if members.length}}
-		    	<button class="btn btn-primary add add-new-member">Add a new family member!</button>
-		    {{/if}}
+  			</div>
+  			<canvas class="tree-canvas">
+			</canvas>
 	    {{/if}}
 	</section>
 	{{> addEditDialog}}
 </template>
 
 <template name="member">
-	<div class="family-member round-rect-5">
+	<div id="{{_id}}" class="family-member round-rect-5">
+		<div><img class="user_photo" src="{{photo_url}}" /></div>
 		<div>{{first_name}} {{middle_name}} {{last_name}}</div>
 		<div>{{dateInfo}}</div>
 		<div>
 			<button class="btn btn-info edit">Edit</button>
+			<button class="add-new-member" alt="Add a new family member!" />
 		</div>
 	</div>
 </template>
