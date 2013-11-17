@@ -10,11 +10,11 @@ var members;
 if (Meteor.isClient) {
   Template.layout.events({
     'click .add-new-member' : function () {
-      Session.set("current_member", undefined);
-      $(".add").hide();
-      showAddEditDialog = true;
-      $(".add-member-form").show();
-      Session.set("parents", null);
+      //Session.set("current_member", undefined);
+      //$(".add").hide();
+      //showAddEditDialog = true;
+      //$(".add-member-form").show();
+      //Session.set("parents", null);
       return false;
     },
     'click .add-yourself' : function() {
@@ -65,7 +65,87 @@ if (Meteor.isClient) {
       editFamilyMember(this);
       return false;
     },
+    'click .addon-right' : function() {
+      Session.set("addon-direction", "right");
+
+      // then, add all of the HTML and position it
+      addInAddOnBox(this.x_pos, this.y_pos);
+      return false;
+    },
+    'click .addon-left' : function() {
+      Session.set("addon-direction", "left");
+
+      // then, add all of the HTML and position it
+      addInAddOnBox(this.x_pos, this.y_pos);
+      return false;
+    },
+    'click .addon-top' : function() {
+      Session.set("addon-direction", "top");
+
+      // then, add all of the HTML and position it
+      addInAddOnBox(this.x_pos, this.y_pos);
+      return false;
+    },
+    'click .addon-bottom' : function() {
+      Session.set("addon-direction", "bottom");
+
+      // then, add all of the HTML and position it
+      addInAddOnBox(this.x_pos, this.y_pos);
+      return false;
+    }
   });
+}
+
+function addInAddOnBox(x_pos, y_pos) {
+  // first, clear previous instances
+  $(".tree-main").find(".addon-box").remove();
+
+  var outerHTML = "<div class='addon-box'></div>";
+  $(".tree-main").append(outerHTML);
+  var fullBox = Meteor.render(Template["addonDrillDown"]);
+  $(".tree-main").find(".addon-box").append(fullBox);
+
+  // adjust the position
+  repositionAddOnBox(x_pos, y_pos);
+}
+
+function repositionAddOnBox(x_pos, y_pos) {
+  var width = parseInt($(".tree-main").find(".family-member").css("width"));
+  var height = parseInt($(".tree-main").find(".family-member").css("height"));
+
+  if (Session.get("addon-direction") !== undefined) {
+    if (Session.get("addon-direction") === "right") {
+      $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height/2);
+      $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width);
+    } else if (Session.get("addon-direction") === "left") {
+      var boxWidth = parseInt($(".tree-main").find(".addon-box").css("width"));
+      $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height/2);
+      $(".tree-main").find(".addon-box").css("left", x_pos - boxWidth - 20);
+    } else if (Session.get("addon-direction") === "top") {
+      var boxHeight = parseInt($(".tree-main").find(".addon-box").css("height"));
+      $(".tree-main").find(".addon-box").css("top", y_pos - boxHeight - 20);
+      $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width/2);
+    } else if (Session.get("addon-direction") === "bottom") {
+      $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height);
+      $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width/2);
+    }
+  }
+}
+
+Template.addonDrillDown.directionLeftOrRight = function () {
+  return Session.get("addon-direction") !== undefined && 
+      (Session.get("addon-direction") === "left" || 
+      Session.get("addon-direction") === "right");
+}
+
+Template.addonDrillDown.directionTop = function () {
+  return Session.get("addon-direction") !== undefined && 
+      Session.get("addon-direction") === "top";
+}
+
+Template.addonDrillDown.directionBottom = function () {
+  return Session.get("addon-direction") !== undefined && 
+      Session.get("addon-direction") === "bottom";
 }
 
 Template.home.rendered = function () {
@@ -113,10 +193,11 @@ Template.addEditDialog.member = function () {
 function placeMembers(members) {
   var firstMember;
   var templateName = "member";
-  var x = 0;
+  var x = 10;
+  var y = 10;
   for (var i=0; i<members.length; i++) {
     if (members[i].parents === null || members[i].parents === undefined) {
-      positionMember(members, members[i], x, 0);
+      positionMember(members, members[i], x, y);
       x += familyMemberWidth + familyMemberMargin;
     }
   }

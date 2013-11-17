@@ -25,8 +25,11 @@
 		<div>{{dateInfo}}</div>
 		<div>
 			<button class="btn btn-info edit">Edit</button>
-			<button class="add-new-member" alt="Add a new family member!" />
 		</div>
+		<button class="add-new-member addon-top" alt="Add a new family member!" />
+		<button class="add-new-member addon-right" alt="Add a new family member!" />
+		<button class="add-new-member addon-bottom" alt="Add a new family member!" />
+		<button class="add-new-member addon-left" alt="Add a new family member!" />
 	</div>
 </template>
 
@@ -90,5 +93,22 @@
 <template name="alert">
 	<div id="main-alert" class="alert alert-success">
 
+	</div>
+</template>
+
+<template name="addonDrillDown">
+	<div class="addon-drill-down">
+		{{#if directionLeftOrRight}}
+			<div>Add spouse</div>
+			<div>Add sibling</div>
+		{{else}}
+			{{#if directionTop}}
+				<div>Add parent</div>
+			{{else}}
+				{{#if directionBottom}}
+					<div>Add child</div>
+				{{/if}}
+			{{/if}}
+		{{/if}}
 	</div>
 </template>

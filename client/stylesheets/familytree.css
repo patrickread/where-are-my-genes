@@ -53,6 +53,38 @@ header
 	height: 40px;
 }
 
+.addon-top
+{
+	position: absolute;
+	top: -20px;
+	left: 50%;
+	margin-left: -20px;
+}
+
+.addon-right
+{
+	position: absolute;
+	right: -20px;
+	top: 50%;
+	margin-top: -20px;
+}
+
+.addon-bottom
+{
+	position: absolute;
+	bottom: -20px;
+	left: 50%;
+	margin-left: -20px;
+}
+
+.addon-left
+{
+	position: absolute;
+	left: -20px;
+	top: 50%;
+	margin-top: -20px;
+}
+
 .login
 {
 	float: right;
@@ -173,10 +205,11 @@ form button
 	width: 250px;
 	height: 200px;
 	border: 1px solid lightgray;
-	padding: 15px 5px 5px 5px;
+	padding: 20px 5px 5px 5px;
 	float: left;
 	margin: 10px;
 	position: absolute;
+	z-index: 2;
 }
 
 .submit-div
@@ -206,4 +239,13 @@ form button
 {
 	width: 100px;
 	height: 100px;
+}
+
+.addon-box
+{
+	position: absolute;
+	width: 200px;
+	height: 50px;
+	background-color: #F5F5F5;
+	z-index: 1;
 }
