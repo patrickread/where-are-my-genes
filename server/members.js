@@ -25,11 +25,13 @@ Meteor.methods({
       member.user_id = Meteor.userId();
       if (member._id === undefined) {
         member._id = Random.id();
+      }
+      Members.upsert(member._id, member);
+      if (member._id === undefined) {
         member.responseMessage = "Member created!";
       } else {
         member.responseMessage = member.first_name + " " + member.last_name + " was edited!";
       }
-      Members.upsert(member._id, member);
 
       return member;
   } else {

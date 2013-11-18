@@ -99,8 +99,12 @@
 <template name="addonDrillDown">
 	<div class="addon-drill-down">
 		{{#if directionLeftOrRight}}
-			<div>Add spouse</div>
-			<div>Add sibling</div>
+			<div>
+				<button id="add-spouse" class="btn btn-info">Add spouse</button>
+			</div>
+			<div>
+				<button id="add-sibling" class="btn btn-info">Add sibling</button>
+			</div>
 		{{else}}
 			{{#if directionTop}}
 				<div>Add parent</div>

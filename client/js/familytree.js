@@ -3,32 +3,29 @@ var showMainAlert = false;
 var mainAlertText = "";
 var familyMemberWidth = 250;
 var familyMemberHeight = 200;
-var familyMemberMargin = 10;
+var familyMemberMargin = 60;
 Meteor.subscribe("members");
 var members;
 
 if (Meteor.isClient) {
   Template.layout.events({
     'click .add-new-member' : function () {
-      //Session.set("current_member", undefined);
-      //$(".add").hide();
-      //showAddEditDialog = true;
-      //$(".add-member-form").show();
-      //Session.set("parents", null);
+      //addAddEditDialog();
+      //Session.set("relationships", undefined);
       return false;
     },
     'click .add-yourself' : function() {
       $(".add").hide();
       $(".add-member-form").show();
-      Session.set("parents", null);
+      Session.set("relationships", undefined);
       fillInUsername();
       return false;
     }
   });
   Template.addEditDialog.events({
     'click .add-family-submit' : function () {
-      closeAddEditDialog();
       addFamilyMember();
+      closeAddEditDialog();
       return false;
     },
     'click .cancel-button' : function () {
@@ -66,57 +63,76 @@ if (Meteor.isClient) {
       return false;
     },
     'click .addon-right' : function() {
-      Session.set("addon-direction", "right");
-
-      // then, add all of the HTML and position it
-      addInAddOnBox(this.x_pos, this.y_pos);
+      directionalAddClicked(this, "right");
       return false;
     },
     'click .addon-left' : function() {
-      Session.set("addon-direction", "left");
-
-      // then, add all of the HTML and position it
-      addInAddOnBox(this.x_pos, this.y_pos);
+      directionalAddClicked(this, "left");
       return false;
     },
     'click .addon-top' : function() {
-      Session.set("addon-direction", "top");
-
-      // then, add all of the HTML and position it
-      addInAddOnBox(this.x_pos, this.y_pos);
+      directionalAddClicked(this, "top");
       return false;
     },
     'click .addon-bottom' : function() {
-      Session.set("addon-direction", "bottom");
-
-      // then, add all of the HTML and position it
-      addInAddOnBox(this.x_pos, this.y_pos);
+      directionalAddClicked(this, "bottom");
       return false;
     }
   });
+  Template.addonDrillDown.events({
+    'click #add-spouse' : function() {
+      Session.set("relationships", {spouse: Session.get("sourceMember")});
+      addAddEditDialog();
+      return false;
+    },
+    'click #add-sibling' : function() {
+      var parents = Session.get("sourceMember").parents;
+      if (parents !== undefined) {
+        Session.set("relationships", {parents: parents});
+      } else {
+        Session.set("relationships", {sibling: Session.get("sourceMember")});
+      }
+      addAddEditDialog();
+      return false;
+    },
+  });
 }
 
-function addInAddOnBox(x_pos, y_pos) {
+function directionalAddClicked(member, direction) {
+  if ($(".tree-main").find(".addon-box").length > 0 && 
+    Session.get("addon-direction") === direction) {
+    $(".tree-main").find(".addon-box").remove();
+    Session.set("addon-direction", undefined);
+  } else {
+    Session.set("addon-direction", direction);
+    Session.set("sourceMember", member);
+    // add in the box for the member at this position
+    addInAddOnBox(member._id, member.x_pos, member.y_pos);
+  }
+}
+
+function addInAddOnBox(memberID, x_pos, y_pos) {
   // first, clear previous instances
   $(".tree-main").find(".addon-box").remove();
 
   var outerHTML = "<div class='addon-box'></div>";
-  $(".tree-main").append(outerHTML);
+  $("#" + memberID).append(outerHTML);
   var fullBox = Meteor.render(Template["addonDrillDown"]);
-  $(".tree-main").find(".addon-box").append(fullBox);
+  $("#" + memberID).find(".addon-box").append(fullBox);
 
   // adjust the position
-  repositionAddOnBox(x_pos, y_pos);
+  repositionAddOnBox(memberID, x_pos, y_pos);
 }
 
-function repositionAddOnBox(x_pos, y_pos) {
-  var width = parseInt($(".tree-main").find(".family-member").css("width"));
-  var height = parseInt($(".tree-main").find(".family-member").css("height"));
+function repositionAddOnBox(memberID, x_pos, y_pos) {
+  var width = parseInt($("#" + memberID).css("width"));
+  var height = parseInt($("#" + memberID).css("height"));
 
   if (Session.get("addon-direction") !== undefined) {
     if (Session.get("addon-direction") === "right") {
-      $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height/2);
-      $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width);
+      var boxHeight = parseInt($("#" + memberID).find(".addon-box").css("height"));
+      $("#" + memberID).find(".addon-box").css("top", height/2 - boxHeight/2);
+      $("#" + memberID).find(".addon-box").css("left", 20 + width);
     } else if (Session.get("addon-direction") === "left") {
       var boxWidth = parseInt($(".tree-main").find(".addon-box").css("width"));
       $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height/2);
@@ -126,8 +142,9 @@ function repositionAddOnBox(x_pos, y_pos) {
       $(".tree-main").find(".addon-box").css("top", y_pos - boxHeight - 20);
       $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width/2);
     } else if (Session.get("addon-direction") === "bottom") {
-      $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height);
-      $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width/2);
+      var boxWidth = parseInt($(".tree-main").find(".addon-box").css("width"));
+      $(".tree-main").find(".addon-box").css("top", 30 + y_pos + height);
+      $(".tree-main").find(".addon-box").css("left", 10 + x_pos + width/2 - boxWidth/2);
     }
   }
 }
@@ -197,24 +214,33 @@ function placeMembers(members) {
   var y = 10;
   for (var i=0; i<members.length; i++) {
     if (members[i].parents === null || members[i].parents === undefined) {
-      positionMember(members, members[i], x, y);
+      positionMember(members, members[i], {xValue: x}, y);
       x += familyMemberWidth + familyMemberMargin;
     }
   }
 }
 
+// The x value needs to be passed by reference, so I'm using 
+// literal object notation to make simple object. you access the int via
+// x.xValue. Y can't be by reference since each each call through the stack
+// needs a different y, so that's separate
 function positionMember(members, theMember, x, y) {
-  theMember.x_pos = x;
-  theMember.y_pos = y;
+
+  //theMember.x_pos = x;
+  //theMember.y_pos = y;
+  //var childrenWidth = children.length * (familyMemberWidth + familyMemberMargin);
+  //var startX = x - childrenWidth / 2;
   var children = findMemberChildren(members, theMember._id);
-  var childrenWidth = children.length * (familyMemberWidth + familyMemberMargin);
-  var startX = x - childrenWidth / 2;
+  var originalX = x.xValue;
   for(var i=0; i<children.length; i++) {
+    x = {xValue: x.xValue + familyMemberWidth + familyMemberMargin};
     positionMember(members, 
-                  children[i],
-                  startX + i*(familyMemberWidth + familyMemberMargin),
-                  y + familyMemberHeight + familyMemberMargin);
+      children[i],
+      x.xValue,
+      y + familyMemberHeight + familyMemberMargin);
   }
+  theMember.x_pos = ((x.xValue - originalX) / 2) + originalX;
+  theMember.y_pos = y;
 }
 
 function findMemberChildren(members, memberID) {
@@ -247,11 +273,27 @@ function addFamilyMember(parent_ids) {
                   last_name: $("#last-name").val(),
                   date_of_birth: new Date($("#date-of-birth").val()),
                   date_of_death: new Date($("#date-of-death").val()),
-                  photo_url: $(".user_photo").attr("src"),
-                  parents: Session.get("parents")
+                  photo_url: $(".form-field").find(".user_photo").attr("src"),
                 };
   if (Session.get("current_member") !== undefined) {
-    member._id = Session.get("current_member")._id;
+    var currentMember = Session.get("current_member");
+    member._id = currentMember._id;
+    member.spouses = currentMember.spouses;
+    member.parents = currentMember.parents;
+  }
+  if (Session.get("relationships") !== undefined) {
+    var relationships = Session.get("relationships");
+    if (relationships.spouse !== undefined) {
+      if (member.spouses === undefined) {
+        member.spouses = [];
+      }
+
+      if (member.parents === undefined) {
+        member.parents = [];
+      }
+      member.spouses.push(relationships.spouse._id);
+      member.parents = relationships.parents;
+    }
   }
   Meteor.call('addFamilyMember', member, function (error, result) {
     if (error === undefined) {
@@ -296,10 +338,55 @@ function fillInUsername() {
   }
 }
 
+function addAddEditDialog() {
+  Session.set("current_member", undefined);
+  $(".add").hide();
+  showAddEditDialog = true;
+  $(".add-member-form").show();
+
+  handleRelationships();
+}
+
+function handleRelationships() {
+  if (Session.get("relationships") !== undefined) {
+    var relationships = Session.get("relationships");
+    if (relationships.spouse !== undefined) {
+      var html = "<div class='form-field'>" +
+                    "<label for='spouse'>Spouse</label>" + 
+                    "<span id='spouse'>" + relationships.spouse.first_name + " " + relationships.spouse.last_name + "</span>" + 
+                "</div>";
+      $(".add-member-form").find(".inner-form").prepend(html);
+    }
+
+    if (relationships.parents !== undefined && relationships.parents.length > 0) {
+      var html = "<div class='form-field'>" +
+                    "<label for='parents'>Parents</label>" + 
+                    "<span id='parents'>";
+      for (var i=0; i<relationships.parents.length; i++) {
+        html += relationships.parents[i].first_name + " " + 
+                relationships.parents[i].last_name + ", ";
+      }
+      html = html.substring(0, html.length - 2);
+      html += "</span>" + 
+                "</div>";
+      $(".add-member-form").find(".inner-form").prepend(html);
+    }
+
+    if (relationships.sibling !== undefined) {
+      var html = "<div class='form-field'>" +
+                    "<label for='sibling'>Sibling</label>" + 
+                    "<span id='sibling'>" + relationships.sibling.first_name + " " + relationships.sibling.last_name + "</span>" + 
+                "</div>";
+      $(".add-member-form").find(".inner-form").prepend(html);
+    }
+  }
+}
+
 function closeAddEditDialog() {
   $(".add").show();
   showAddEditDialog = false;
   $(".add-member-form").hide();
+  Session.set("relationships", undefined);
 }
 
 /* HELPER METHODS */
