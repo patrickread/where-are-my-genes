@@ -1,10 +1,12 @@
 var showAddEditDialog = false;
+var showUserPhotoEdit = false;
 var showMainAlert = false;
 var mainAlertText = "";
 var familyMemberWidth = 250;
 var familyMemberHeight = 200;
 var familyMemberMargin = 60;
 Meteor.subscribe("members");
+Meteor.subscribe("unions");
 var members;
 
 if (Meteor.isClient) {
@@ -55,6 +57,20 @@ if (Meteor.isClient) {
     'click #photo-upload' : function () {
       var member = Session.get("current_member");
       Meteor.call('waitingForPhoto', member._id);
+    },
+    'mouseover .user_photo' : function () {
+      $(".user-photo-edit").show();
+    },
+    'mouseout .user_photo' : function () {
+      if ($(".user-photo-edit:hover").length <= 0) {
+        $(".user-photo-edit").hide();
+      }
+    },
+    'click .user_photo' : function () {
+      $("#photo-upload").trigger("click");
+    },
+    'click .user-photo-edit' : function () {
+      $("#photo-upload").trigger("click");
     }
   });
   Template.member.events({
@@ -101,7 +117,7 @@ if (Meteor.isClient) {
 function directionalAddClicked(member, direction) {
   if ($(".tree-main").find(".addon-box").length > 0 && 
     Session.get("addon-direction") === direction) {
-    $(".tree-main").find(".addon-box").remove();
+    removeAddOnBox();
     Session.set("addon-direction", undefined);
   } else {
     Session.set("addon-direction", direction);
@@ -111,9 +127,24 @@ function directionalAddClicked(member, direction) {
   }
 }
 
+function removeAddOnBox() {
+  // check if there is already an add on box
+  if ($(".tree-main").find(".addon-box").length > 0) {
+    // first, lower the z-index of the parent element back to regular
+    var zIndex = parseInt($(".tree-main").find(".addon-box").parent().css("z-index"));
+    $(".tree-main").find(".addon-box").parent().css("z-index", zIndex-1);
+    // then, remove the box
+    $(".tree-main").find(".addon-box").remove();
+  }
+}
+
 function addInAddOnBox(memberID, x_pos, y_pos) {
-  // first, clear previous instances
-  $(".tree-main").find(".addon-box").remove();
+  removeAddOnBox();
+
+  // first, raise the z-index of the parent, so the add on box will be above
+  // any other family member boxes
+  var zIndex = parseInt($("#" + memberID).css("z-index"));
+  $("#" + memberID).css("z-index", zIndex+1);
 
   var outerHTML = "<div class='addon-box'></div>";
   $("#" + memberID).append(outerHTML);
@@ -174,12 +205,25 @@ Template.home.rendered = function () {
 
   if (!showAddEditDialog) {
     $(".add-member-form").hide();
+  } else {
+    if (Session.get("current_member") !== undefined) {
+      if (Session.get("current_member").photo_url !== undefined) {
+        $("#photo-upload").hide();
+        $("#user_photo").attr('src', Session.get("current_member").photo_url);
+      }
+    } else {
+      $(".user-photo-container").hide();
+    }
   }
 
   if (!showMainAlert) {
     $("#main-alert").hide();
   } else {
     $("#main-alert").text(mainAlertText);
+  }
+
+  if (!showUserPhotoEdit) {
+    $(".user-photo-edit").hide();
   }
 
   for (var i=0; i<members.length; i++) {
@@ -197,8 +241,14 @@ Template.home.members = function () {
 }
 
 Template.addEditDialog.member = function () {
+  // refresh the upload input
+  var control = $("#photo-upload");
+  control.replaceWith( control = control.clone( true ) );
+
   if (Session.get("current_member") !== undefined) {
     var member = Session.get("current_member");
+    // find any current changes to this member
+    member = Members.find(member._id).fetch()[0];
     member.date_of_birth_string = getDateString(member.date_of_birth);
     member.date_of_death_string = getDateString(member.date_of_death);
     return member;
@@ -230,6 +280,10 @@ function positionMember(members, theMember, x, y) {
   //theMember.y_pos = y;
   //var childrenWidth = children.length * (familyMemberWidth + familyMemberMargin);
   //var startX = x - childrenWidth / 2;
+  var spouses = [];
+  if (theMember.spouses !== undefined) {
+    spouses = findMemberSpouses(members, theMember.spouses);
+  }
   var children = findMemberChildren(members, theMember._id);
   var originalX = x.xValue;
   for(var i=0; i<children.length; i++) {
@@ -239,8 +293,12 @@ function positionMember(members, theMember, x, y) {
       x.xValue,
       y + familyMemberHeight + familyMemberMargin);
   }
+
   theMember.x_pos = ((x.xValue - originalX) / 2) + originalX;
   theMember.y_pos = y;
+
+  // add the spouses
+  
 }
 
 function findMemberChildren(members, memberID) {
@@ -254,6 +312,26 @@ function findMemberChildren(members, memberID) {
   }
 
   return children;
+}
+
+function findMemberSpouses(members, spouseIDs) {
+  var spouses = [];
+  var spouseIndices = [];
+  for (var i=0; i<members.length; i++) {
+    for (var j=0; j<spouseIDs.length; j++) {
+      if (members[i]._id === spouseIDs[j]) {
+        spouses.push(members[i]);
+        spouseIDs.splice(j, 1);
+        j--;
+
+        // also remove from members so we don't separately add the spouse again
+        members.splice(i, 1);
+        i--;
+      }
+    }
+  }
+
+  return spouses;
 }
 
 function findMemberById(members, id) {
@@ -312,6 +390,12 @@ function editFamilyMember(member) {
   $(".add-member-form").show();
   $(".add-member-form").find("legend").text("Edit a family member");
   Session.set("current_member", member);
+
+  if (Session.get("current_member") !== undefined) {
+    if (Session.get("current_member").photo_url !== undefined) {
+      $("#photo-upload").hide();
+    }
+  }
 }
 
 function alert(message) {
@@ -342,8 +426,9 @@ function addAddEditDialog() {
   Session.set("current_member", undefined);
   $(".add").hide();
   showAddEditDialog = true;
+  showUserPhotoEdit = false;
   $(".add-member-form").show();
-
+  $(".user-photo-container").hide();
   handleRelationships();
 }
 

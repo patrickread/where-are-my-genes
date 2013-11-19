@@ -3,10 +3,10 @@ Meteor.publish("members", function () {
     {user_id: this.userId});
 });
 
-Meteor.publish("photos", function () {
-  return Photos.find(
+Meteor.publish("unions", function () {
+  return Unions.find(
     {user_id: this.userId});
-})
+});
 
 if (Meteor.isServer) {
   Meteor.startup(function () {

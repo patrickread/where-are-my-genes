@@ -41,13 +41,15 @@
 		    	<div class="inner-form">
 		    		<div class="form-field" id="user_photo_container">
 		    			<label for="photo-upload">Photo</label>
-		    			{{#if member.photo_url}}
-		    				<img class="user_photo" src="{{member.photo_url}}" />
-		    			{{else}}
-			    			{{#S3 callback="s3UploadFinished"}}
+		    				<div class="user-photo-container">
+			    				<img class="user_photo" src="{{member.photo_url}}" />
+			    				<div class="user-photo-edit">
+			    					Edit
+			    				</div>
+		    				</div>
+		    				{{#S3 callback="s3UploadFinished"}}
 	    						<input id="photo-upload" class="btn" type="file">
 							{{/S3}}
-						{{/if}}
 		    		</div>
 				    <div class="form-field">
 					    <label for="first-name">First Name</label>
