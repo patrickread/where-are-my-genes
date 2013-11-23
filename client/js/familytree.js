@@ -8,6 +8,8 @@ var familyMemberMargin = 60;
 Meteor.subscribe("members");
 Meteor.subscribe("unions");
 var members;
+var unions;
+var treeLines = [];
 
 if (Meteor.isClient) {
   Template.layout.events({
@@ -232,6 +234,10 @@ Template.home.rendered = function () {
       $("#" + members[i]._id).css("top", members[i].y_pos);
     }
   }
+
+  for (var i=0; i<treeLines.length; i++) {
+    drawLine(treeLines[i]);
+  }
 };
 
 Template.home.members = function () {
@@ -262,6 +268,7 @@ function placeMembers(members) {
   var templateName = "member";
   var x = 10;
   var y = 10;
+  unions = Unions.find().fetch();
   for (var i=0; i<members.length; i++) {
     if (members[i].parents === null || members[i].parents === undefined) {
       positionMember(members, members[i], {xValue: x}, y);
@@ -280,25 +287,113 @@ function positionMember(members, theMember, x, y) {
   //theMember.y_pos = y;
   //var childrenWidth = children.length * (familyMemberWidth + familyMemberMargin);
   //var startX = x - childrenWidth / 2;
-  var spouses = [];
-  if (theMember.spouses !== undefined) {
-    spouses = findMemberSpouses(members, theMember.spouses);
+
+  if (theMember.x_pos === undefined && theMember.y_pos === undefined) {
+    var spouseIDs = [];
+    var foundUnions = findUnionsForMember(theMember._id);
+    var originalX = x.xValue;
+    if (foundUnions !== undefined) {
+      for (var i=0; i<foundUnions.length; i++) {
+        for (var j=0; j<foundUnions[i].members.length; j++) {
+          if (foundUnions[i].members[j] !== theMember._id) {
+            //members = removeFromMembers(members, foundUnions[i].members[j]);
+            spouseIDs.push(foundUnions[i].members[j]);
+          }
+        }
+
+        var children = foundUnions[i].children;
+        if (children !== undefined && children !== null) {
+          for (var i=0; i<children.length; i++) {
+            x = {xValue: x.xValue + familyMemberWidth + familyMemberMargin};
+            positionMember(members, 
+              children[i],
+              x.xValue,
+              y + familyMemberHeight + familyMemberMargin);
+          }
+        }
+      }
+    }
+
+    //theMember.x_pos = ((x.xValue - originalX) / 2) + originalX;
+    //theMember.y_pos = y;
+    var availableLength = x.xValue - originalX + (familyMemberWidth + familyMemberMargin);
+    var neededLength = (spouseIDs.length + 1) * (familyMemberWidth + familyMemberMargin);
+    var startPos = originalX;
+    if (availableLength > neededLength) {
+      startPos = ((availableLength / 2) - (neededLength / 2)) + originalX;
+    }
+    theMember.x_pos = startPos;
+    theMember.y_pos = y;
+    var spouses = findMemberSpouses(members, spouseIDs);
+    members = removeFromMembers(members, spouseIDs);
+    for (var i=0; i<spouses.length; i++) {
+      spouses[i].x_pos = startPos + ((familyMemberWidth + familyMemberMargin) * (i+1));
+      spouses[i].y_pos = y;
+      createSpousalLine(theMember, spouses[i]);
+    }
   }
-  var children = findMemberChildren(members, theMember._id);
-  var originalX = x.xValue;
-  for(var i=0; i<children.length; i++) {
-    x = {xValue: x.xValue + familyMemberWidth + familyMemberMargin};
-    positionMember(members, 
-      children[i],
-      x.xValue,
-      y + familyMemberHeight + familyMemberMargin);
+}
+
+function createSpousalLine(member1, member2) {
+  var startX = member1.x_pos + familyMemberWidth;
+  var startY = member1.y_pos + familyMemberHeight/2;
+  var endX = member2.x_pos;
+  var endY = member2.y_pos + familyMemberHeight/2;
+  treeLines.push({
+    start: {
+      x: startX,
+      y: startY
+    },
+    end: {
+      x: endX,
+      y: endY
+    },
+    type: "spouse"
+  });
+}
+
+function drawLine(line) {
+  var margin = 10;
+  var c = document.getElementById("tree-canvas");
+  if (c !== null) {
+    var ctx = c.getContext("2d");
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    if (line.type === "spouse") {
+      ctx.moveTo(line.start.x + margin, line.start.y - 5);
+      ctx.lineTo(line.end.x + margin, line.end.y - 5);
+      ctx.moveTo(line.start.x + margin, line.start.y + 5);
+      ctx.lineTo(line.end.x + margin, line.end.y + 5);
+    } else {
+      ctx.moveTo(line.start.x + margin, line.start.y);
+      ctx.lineTo(line.end.x + margin, line.end.y);
+    }
+    ctx.stroke();
+  }
+}
+
+function removeFromMembers(members, memberIDs) {
+  for (var i=0; i<members.length; i++) {
+    for (var j=0; j<memberIDs.length; j++) {
+      if (members[i]._id === memberIDs[j]) {
+        members.splice(i, 1);
+        break;
+      }
+    }
   }
 
-  theMember.x_pos = ((x.xValue - originalX) / 2) + originalX;
-  theMember.y_pos = y;
+  return members;
+}
 
-  // add the spouses
-  
+function findUnionsForMember(memberID) {
+  var foundUnions = [];
+  for (var i=0; i<unions.length; i++) {
+    if (unions[i].members.indexOf(memberID) != -1) {
+      foundUnions.push(unions[i]);
+    }
+  }
+  return foundUnions;
 }
 
 function findMemberChildren(members, memberID) {
@@ -323,10 +418,6 @@ function findMemberSpouses(members, spouseIDs) {
         spouses.push(members[i]);
         spouseIDs.splice(j, 1);
         j--;
-
-        // also remove from members so we don't separately add the spouse again
-        members.splice(i, 1);
-        i--;
       }
     }
   }
@@ -359,27 +450,88 @@ function addFamilyMember(parent_ids) {
     member.spouses = currentMember.spouses;
     member.parents = currentMember.parents;
   }
-  if (Session.get("relationships") !== undefined) {
-    var relationships = Session.get("relationships");
-    if (relationships.spouse !== undefined) {
-      if (member.spouses === undefined) {
-        member.spouses = [];
+  
+  Meteor.call('addFamilyMember', member, Session.get("relationships"), function (error, result) {
+    if (error === undefined) {
+      if (result !== undefined) {
+        var member = result.member;
+        var relationships = result.relationships;
+        if (relationships !== undefined) {
+          if (relationships.spouse !== undefined) {
+            var unionMembers = [];
+            unionMembers.push({"_id":member._id});
+            unionMembers.push({"_id":relationships.spouse._id});
+            addOrEditUnion(unionMembers, null);
+
+            // if (member.spouses === undefined) {
+            //   member.spouses = [];
+            // }
+
+            // if (member.parents === undefined) {
+            //   member.parents = [];
+            // }
+            // member.spouses.push(relationships.spouse._id);
+            // member.parents = relationships.parents;
+          }
+
+          if (relationships.parents !== undefined) {
+            var unionMembers = relationships.parents;
+            var children = [ {"_id":member._id} ];
+            addOrEditUnion(unionMembers, children);
+          }
+        }
+
+        if (member.responseMessage !== undefined) {
+          alert(member.responseMessage);
+          Session.set("current_member", undefined);
+          Session.set("parents", undefined);
+        }
+      }
+    }
+  });
+}
+
+function addOrEditUnion(members, children) {
+  var union = {
+    "members": members,
+    "children": children
+  }
+  var unions = Unions.find({"members": { $in : members } }).fetch();
+  for (var i=0; i<unions.length; i++) {
+    if (unions[i].members !== undefined && union.members !== undefined) {
+      var membersInUnion = true;
+      for (var j=0; j<union.members.length; j++) {
+        if (unions[i].members.indexOf(union.member[j]) == -1) {
+          membersInUnion = false;
+        }
       }
 
-      if (member.parents === undefined) {
-        member.parents = [];
+      if (membersInUnion) {
+        if (unions[i].children === undefined || unions[i].children === null) {
+          unions[i].children = [];
+        }
+        for (var j=0; j<union.children.length; j++) {
+          unions[i].children.push(union.children[j]);
+        }
+        unions[i].children = union.children;
+        Meteor.call("addUnion", unions[i], function (error, result) {
+          if (error === undefined) {
+            console.log("Union returned: " + result.responseMessage);
+          } else {
+            console.log("Error on union: " + error.toString());
+          }
+        });
+        return unions[i];
       }
-      member.spouses.push(relationships.spouse._id);
-      member.parents = relationships.parents;
     }
   }
-  Meteor.call('addFamilyMember', member, function (error, result) {
+
+  // create the new union
+  Meteor.call("addUnion", union, function (error, result) {
     if (error === undefined) {
-      if (result.responseMessage !== undefined) {
-        alert(result.responseMessage);
-        Session.set("current_member", undefined);
-        Session.set("parents", undefined);
-      }
+      console.log("Union returned: " + result.responseMessage);
+    } else {
+      console.log("Error on union: " + error.toString());
     }
   });
 }
@@ -436,10 +588,11 @@ function handleRelationships() {
   if (Session.get("relationships") !== undefined) {
     var relationships = Session.get("relationships");
     if (relationships.spouse !== undefined) {
-      var html = "<div class='form-field'>" +
+      var html = "<div class='form-field spouse-field'>" +
                     "<label for='spouse'>Spouse</label>" + 
                     "<span id='spouse'>" + relationships.spouse.first_name + " " + relationships.spouse.last_name + "</span>" + 
                 "</div>";
+      $(".add-member-form").find(".spouse-field").remove();
       $(".add-member-form").find(".inner-form").prepend(html);
     }
 

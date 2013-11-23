@@ -19,7 +19,7 @@ if (Meteor.isServer) {
 }
 
 Meteor.methods({
-  addFamilyMember: function (member) {
+  addFamilyMember: function (member, relationships) {
     console.log("member! " + (member._id || ""));
     if (Meteor.userId()) {
       member.user_id = Meteor.userId();
@@ -33,10 +33,46 @@ Meteor.methods({
         member.responseMessage = member.first_name + " " + member.last_name + " was edited!";
       }
 
-      return member;
-  } else {
-    return null;
-  }
+      return {"member": member, "relationships": relationships};
+    } else {
+      return null;
+    }
+  },
+  deleteMember: function (member) {
+    if (Meteor.userId()) {
+      Members.remove(member);
+    }
+  },
+  addUnion: function (union) {
+    if (Meteor.userId()) {
+      union.user_id = Meteor.userId();
+      if (union._id === undefined) {
+        union._id = Random.id();
+      }
+      Unions.upsert(union._id, union);
+      if (union._id === undefined) {
+        union.responseMessage = "Union created!";
+      } else {
+        union.responseMessage = "Union edited!";
+      }
+
+      return union;
+    } else {
+      return null;
+    }
+  },
+  findUnionsByMember: function (memberID) {
+    var unionsAll = Unions.find().fetch();
+    console.log("memberID: " + memberID + " id: " + "oEaBXPhjk2RoYLqXZ");
+    var fuck = Unions.find({"members": {$elemMatch: {"_id":"oEaBXPhjk2RoYLqXZ"}}}).fetch();
+    console.log("mongo query: " + fuck.length);
+    var unions = Unions.find({"members" : 
+                            { $elemMatch: 
+                              {"_id" : memberID} 
+                            }
+                          }).fetch();
+    console.log("my query: " + unions.length);
+    return "tits!";
   },
   waitingForPhoto: function(memberId) {
     console.log("waiting for photo!");

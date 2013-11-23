@@ -66,7 +66,7 @@ header
 	position: absolute;
 	right: -20px;
 	top: 50%;
-	margin-top: -20px;
+	margin-top: -30px;
 }
 
 .addon-bottom
@@ -82,7 +82,7 @@ header
 	position: absolute;
 	left: -20px;
 	top: 50%;
-	margin-top: -20px;
+	margin-top: -30px;
 }
 
 .login
@@ -123,13 +123,18 @@ header
 	padding-top: 65px;
 	z-index: 1;
 	overflow: scroll;
-	position: relative;
-	min-height: 500px;
+	height: 500px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
 }
 
 .tree-canvas
 {
-	padding-top: 65px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
 }
 
 .add-member-form
