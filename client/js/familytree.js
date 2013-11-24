@@ -2,8 +2,8 @@ var showAddEditDialog = false;
 var showUserPhotoEdit = false;
 var showMainAlert = false;
 var mainAlertText = "";
-var familyMemberWidth = 250;
-var familyMemberHeight = 200;
+var familyMemberWidth = 320;
+var familyMemberHeight = 180;
 var familyMemberMargin = 60;
 Meteor.subscribe("members");
 Meteor.subscribe("unions");
@@ -99,7 +99,7 @@ if (Meteor.isClient) {
   });
   Template.addonDrillDown.events({
     'click #add-spouse' : function() {
-      Session.set("relationships", {spouse: Session.get("sourceMember")});
+      Session.set("relationships", {spouse: {member: Session.get("sourceMember")}});
       addAddEditDialog();
       return false;
     },
@@ -108,7 +108,7 @@ if (Meteor.isClient) {
       if (parents !== undefined) {
         Session.set("relationships", {parents: parents});
       } else {
-        Session.set("relationships", {sibling: Session.get("sourceMember")});
+        Session.set("relationships", {sibling: {member: Session.get("sourceMember")}});
       }
       addAddEditDialog();
       return false;
@@ -211,7 +211,10 @@ Template.home.rendered = function () {
     if (Session.get("current_member") !== undefined) {
       if (Session.get("current_member").photo_url !== undefined) {
         $("#photo-upload").hide();
+        $(".user-photo-container").show();
         $("#user_photo").attr('src', Session.get("current_member").photo_url);
+      } else {
+        $(".user-photo-container").hide();
       }
     } else {
       $(".user-photo-container").hide();
@@ -228,6 +231,8 @@ Template.home.rendered = function () {
     $(".user-photo-edit").hide();
   }
 
+  hideSpousalFields();
+
   for (var i=0; i<members.length; i++) {
     if (members[i].x_pos !== undefined && members[i].y_pos !== undefined) {
       $("#" + members[i]._id).css("left", members[i].x_pos);
@@ -242,6 +247,14 @@ Template.home.rendered = function () {
 
 Template.home.members = function () {
   members = Members.find().fetch();
+  for (var i=0; i<members.length; i++) {
+    if (members[i].first_name === undefined) {
+      // junk data, remove from list
+      members.splice(i, 1);
+      i--;
+    }
+    members[i].date_of_birth_string = getDateString(members[i].date_of_birth);
+  }
   placeMembers(members);
   return members;
 }
@@ -257,6 +270,15 @@ Template.addEditDialog.member = function () {
     member = Members.find(member._id).fetch()[0];
     member.date_of_birth_string = getDateString(member.date_of_birth);
     member.date_of_death_string = getDateString(member.date_of_death);
+
+    if (member.photo_url !== undefined) {
+      $(".user-photo-container").show();
+      $("#user_photo").attr('src', member.photo_url);
+    }
+
+    // add back into the session variable from the db
+    Session.set("current_member", member);
+
     return member;
   }
 
@@ -450,6 +472,14 @@ function addFamilyMember(parent_ids) {
     member.spouses = currentMember.spouses;
     member.parents = currentMember.parents;
   }
+
+  // add relationship information from form fields
+  var relationships = Session.get("relationships");
+  if (relationships !== undefined && relationships.spouse !== undefined) {
+    relationships.spouse.date_of_marriage = $("#date-of-marriage").val();
+    relationships.spouse.status = $("#spouse-status").val();
+    Session.set("relationships", relationships);
+  }
   
   Meteor.call('addFamilyMember', member, Session.get("relationships"), function (error, result) {
     if (error === undefined) {
@@ -460,8 +490,10 @@ function addFamilyMember(parent_ids) {
           if (relationships.spouse !== undefined) {
             var unionMembers = [];
             unionMembers.push({"_id":member._id});
-            unionMembers.push({"_id":relationships.spouse._id});
-            addOrEditUnion(unionMembers, null);
+            unionMembers.push({"_id":relationships.spouse.member._id});
+            addOrEditUnion(unionMembers, null, 
+              relationships.spouse.date_of_marriage, 
+              relationships.spouse.status);
 
             // if (member.spouses === undefined) {
             //   member.spouses = [];
@@ -477,7 +509,7 @@ function addFamilyMember(parent_ids) {
           if (relationships.parents !== undefined) {
             var unionMembers = relationships.parents;
             var children = [ {"_id":member._id} ];
-            addOrEditUnion(unionMembers, children);
+            addOrEditUnion(unionMembers, children, null, null);
           }
         }
 
@@ -491,10 +523,12 @@ function addFamilyMember(parent_ids) {
   });
 }
 
-function addOrEditUnion(members, children) {
+function addOrEditUnion(members, children, dom, status) {
   var union = {
     "members": members,
-    "children": children
+    "children": children,
+    "date_of_marriage": dom,
+    "status": status
   }
   var unions = Unions.find({"members": { $in : members } }).fetch();
   for (var i=0; i<unions.length; i++) {
@@ -575,29 +609,36 @@ function fillInUsername() {
 }
 
 function addAddEditDialog() {
-  Session.set("current_member", undefined);
-  $(".add").hide();
-  showAddEditDialog = true;
-  showUserPhotoEdit = false;
-  $(".add-member-form").show();
-  $(".user-photo-container").hide();
-  handleRelationships();
+  var member = {};
+  Meteor.call('addFamilyMember', member, null, function (error, result) {
+    if (error === undefined) {
+      Session.set("current_member", result.member);
+      $(".add").hide();
+      showAddEditDialog = true;
+      showUserPhotoEdit = false;
+      $(".add-member-form").show();
+      $(".user-photo-container").hide();
+      handleRelationships();
+    }
+  });
 }
 
 function handleRelationships() {
   if (Session.get("relationships") !== undefined) {
     var relationships = Session.get("relationships");
     if (relationships.spouse !== undefined) {
-      var html = "<div class='form-field spouse-field'>" +
-                    "<label for='spouse'>Spouse</label>" + 
-                    "<span id='spouse'>" + relationships.spouse.first_name + " " + relationships.spouse.last_name + "</span>" + 
-                "</div>";
-      $(".add-member-form").find(".spouse-field").remove();
-      $(".add-member-form").find(".inner-form").prepend(html);
+      $(".add-member-form").find(".spouse-field").show();
+      $(".add-member-form").find(".spouse-field").find("#spouse")
+        .text(relationships.spouse.member.first_name + " " + 
+              relationships.spouse.member.last_name);
+      $(".add-member-form").find(".married-date-field").show();
+      $(".add-member-form").find(".spouse-status-field").show();
+    } else {
+      hideSpousalFields();
     }
 
     if (relationships.parents !== undefined && relationships.parents.length > 0) {
-      var html = "<div class='form-field'>" +
+      var html = "<div class='form-field parents-field'>" +
                     "<label for='parents'>Parents</label>" + 
                     "<span id='parents'>";
       for (var i=0; i<relationships.parents.length; i++) {
@@ -607,17 +648,29 @@ function handleRelationships() {
       html = html.substring(0, html.length - 2);
       html += "</span>" + 
                 "</div>";
+      $(".add-member-form").find(".parents-field").remove();
       $(".add-member-form").find(".inner-form").prepend(html);
+    } else {
+      $(".add-member-form").find(".parents-field").remove();
     }
 
     if (relationships.sibling !== undefined) {
-      var html = "<div class='form-field'>" +
+      var html = "<div class='form-field sibling-field'>" +
                     "<label for='sibling'>Sibling</label>" + 
                     "<span id='sibling'>" + relationships.sibling.first_name + " " + relationships.sibling.last_name + "</span>" + 
                 "</div>";
+      $(".add-member-form").find(".sibling-field").remove();
       $(".add-member-form").find(".inner-form").prepend(html);
+    } else {
+      $(".add-member-form").find(".sibling-field").remove();
     }
   }
+}
+
+function hideSpousalFields() {
+  $(".spouse-field").hide();
+  $(".add-member-form").find(".married-date-field").hide();
+  $(".add-member-form").find(".spouse-status-field").hide();
 }
 
 function closeAddEditDialog() {

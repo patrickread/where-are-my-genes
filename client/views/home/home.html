@@ -19,9 +19,23 @@
 </template>
 
 <template name="member">
-	<div id="{{_id}}" class="family-member round-rect-5">
-		<div><img class="user_photo" src="{{photo_url}}" /></div>
-		<div>{{first_name}} {{middle_name}} {{last_name}}</div>
+	<div id="{{_id}}" class="family-member">
+		<div class="member-photo-area">
+			<img class="member-photo" src="{{photo_url}}" />
+			<div class="member-name">
+				{{first_name}} {{middle_name}} {{last_name}}
+			</div>
+		</div>
+		<div class="member-info-area">
+			<div class="member-info-line">
+				<span class="member-info-label">b</span>
+				<span>{{date_of_birth_string}}</span>
+			</div>
+			<div class="member-info-line">
+				<span class="member-info-label">m</span>
+				<span>{{date_of_birth_string}}</span>
+			</div>
+		</div>
 		<div>{{dateInfo}}</div>
 		<div>
 			<button class="btn btn-info edit">Edit</button>
@@ -79,6 +93,23 @@
 					    <label for="date-of-death">Date of Death</label>
 					    <input id="date-of-death" class="form-control datepicker" size="16" type="text" placeholder="01-01-2013" value="{{member.date_of_death_string}}">
 				    </div>
+				    <div class='form-field spouse-field'>
+	                    <label for='spouse'>Spouse</label>
+	                    <span id='spouse'></span>
+	                </div>
+	                <div class="form-field married-date-field">
+					    <label for="date-of-marriage">Date of Marriage</label>
+					    <input id="date-of-marriage" class="form-control datepicker" size="16" type="text" placeholder="01-01-2013" value="{{member.date_of_marriage_string}}">
+				    </div>
+	                <div class='form-field spouse-status-field'>
+	                    <label for='spouse-status'>Marriage Status</label>
+	                    <input type="text" id="spouse-status" list="spouse-status-list" >
+						<datalist id="spouse-status-list">
+						   <option value="m">Married</option>
+						   <option value="s">Separated</option>
+						   <option value="d">Divorced</option>
+						</datalist>
+	                </div>
 				    <div class="form-field submit-div">
 				    	<button class="btn btn-primary add-family-submit">OK!</button>
 				    </div>
