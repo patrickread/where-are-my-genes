@@ -1,7 +1,3 @@
-var showAddEditDialog = false;
-var showUserPhotoEdit = false;
-var showMainAlert = false;
-var mainAlertText = "";
 var familyMemberWidth = 320;
 var familyMemberHeight = 180;
 var familyMemberMargin = 60;
@@ -48,6 +44,12 @@ if (Meteor.isClient) {
       if (member !== undefined) {
         Members.remove(member._id, function (error) {
           if (error === undefined) {
+            var member = Session.get("current_member");
+            var memberUnions = findUnionsForMember(member._id);
+            for (var i=0; i<memberUnions.length; i++) {
+              Unions.remove(memberUnions[i]._id);
+            }
+            $("#" + member._id).remove();
             closeAddEditDialog();
           } else {
             alert("Error while deleting! " + error.toString());
@@ -205,34 +207,6 @@ Template.home.rendered = function () {
     autoclose: true
   });
 
-  if (!showAddEditDialog) {
-    $(".add-member-form").hide();
-  } else {
-    if (Session.get("current_member") !== undefined) {
-      if (Session.get("current_member").photo_url !== undefined) {
-        $("#photo-upload").hide();
-        $(".user-photo-container").show();
-        $("#user_photo").attr('src', Session.get("current_member").photo_url);
-      } else {
-        $(".user-photo-container").hide();
-      }
-    } else {
-      $(".user-photo-container").hide();
-    }
-  }
-
-  if (!showMainAlert) {
-    $("#main-alert").hide();
-  } else {
-    $("#main-alert").text(mainAlertText);
-  }
-
-  if (!showUserPhotoEdit) {
-    $(".user-photo-edit").hide();
-  }
-
-  hideSpousalFields();
-
   for (var i=0; i<members.length; i++) {
     if (members[i].x_pos !== undefined && members[i].y_pos !== undefined) {
       $("#" + members[i]._id).css("left", members[i].x_pos);
@@ -245,8 +219,22 @@ Template.home.rendered = function () {
   }
 };
 
+Template.home.showAddEditDialog = function () {
+  return Session.get("showAddEditDialog");
+}
+
+Template.home.showAlertDialog = function () {
+  return Session.get("showAlertDialog");
+}
+
+Template.alert.rendered = function () {
+  var mainAlertText = Session.get("mainAlertText");
+  $("#main-alert").text(mainAlertText);
+}
+
 Template.home.members = function () {
   members = Members.find().fetch();
+  unions = Unions.find().fetch();
   for (var i=0; i<members.length; i++) {
     if (members[i].first_name === undefined) {
       // junk data, remove from list
@@ -254,9 +242,39 @@ Template.home.members = function () {
       i--;
     }
     members[i].date_of_birth_string = getDateString(members[i].date_of_birth);
+    members[i].date_of_marriage_string = 
+      getDateString(findLatestWeddingDateForMember(members[i]));
   }
   placeMembers(members);
   return members;
+}
+
+function findLatestWeddingDateForMember(member) {
+  var latestDate;
+  var memberUnions = findUnionsForMember(member._id);
+  for (var i=0; i<memberUnions.length; i++) {
+    if (latestDate === undefined || memberUnions[i].date_of_marriage > latestDate) {
+      latestDate = memberUnions[i].date_of_marriage;
+    }
+  }
+
+  return latestDate;
+}
+
+Template.addEditDialog.rendered = function () {
+  if (Session.get("current_member") !== undefined) {
+    if (Session.get("current_member").photo_url !== undefined) {
+      $("#photo-upload").hide();
+      $(".user-photo-container").show();
+      $("#user_photo").attr('src', Session.get("current_member").photo_url);
+    } else {
+      $(".user-photo-container").hide();
+    }
+  } else {
+    $(".user-photo-container").hide();
+  }
+
+  handleRelationships();
 }
 
 Template.addEditDialog.member = function () {
@@ -290,7 +308,6 @@ function placeMembers(members) {
   var templateName = "member";
   var x = 10;
   var y = 10;
-  unions = Unions.find().fetch();
   for (var i=0; i<members.length; i++) {
     if (members[i].parents === null || members[i].parents === undefined) {
       positionMember(members, members[i], {xValue: x}, y);
@@ -489,8 +506,8 @@ function addFamilyMember(parent_ids) {
         if (relationships !== undefined) {
           if (relationships.spouse !== undefined) {
             var unionMembers = [];
-            unionMembers.push({"_id":member._id});
-            unionMembers.push({"_id":relationships.spouse.member._id});
+            unionMembers.push(member._id);
+            unionMembers.push(relationships.spouse.member._id);
             addOrEditUnion(unionMembers, null, 
               relationships.spouse.date_of_marriage, 
               relationships.spouse.status);
@@ -508,7 +525,7 @@ function addFamilyMember(parent_ids) {
 
           if (relationships.parents !== undefined) {
             var unionMembers = relationships.parents;
-            var children = [ {"_id":member._id} ];
+            var children = [ member._id ];
             addOrEditUnion(unionMembers, children, null, null);
           }
         }
@@ -527,35 +544,35 @@ function addOrEditUnion(members, children, dom, status) {
   var union = {
     "members": members,
     "children": children,
-    "date_of_marriage": dom,
+    "date_of_marriage": new Date(dom),
     "status": status
   }
-  var unions = Unions.find({"members": { $in : members } }).fetch();
-  for (var i=0; i<unions.length; i++) {
-    if (unions[i].members !== undefined && union.members !== undefined) {
+  var memberUnions = Unions.find({"members": { $in : members } }).fetch();
+  for (var i=0; i<memberUnions.length; i++) {
+    if (memberUnions[i].members !== undefined && union.members !== undefined) {
       var membersInUnion = true;
       for (var j=0; j<union.members.length; j++) {
-        if (unions[i].members.indexOf(union.member[j]) == -1) {
+        if (memberUnions[i].members.indexOf(union.members[j]) == -1) {
           membersInUnion = false;
         }
       }
 
       if (membersInUnion) {
-        if (unions[i].children === undefined || unions[i].children === null) {
-          unions[i].children = [];
+        if (memberUnions[i].children === undefined || memberUnions[i].children === null) {
+          memberUnions[i].children = [];
         }
         for (var j=0; j<union.children.length; j++) {
-          unions[i].children.push(union.children[j]);
+          memberUnions[i].children.push(union.children[j]);
         }
-        unions[i].children = union.children;
-        Meteor.call("addUnion", unions[i], function (error, result) {
+        memberUnions[i].children = union.children;
+        Meteor.call("addUnion", memberUnions[i], function (error, result) {
           if (error === undefined) {
             console.log("Union returned: " + result.responseMessage);
           } else {
             console.log("Error on union: " + error.toString());
           }
         });
-        return unions[i];
+        return memberUnions[i];
       }
     }
   }
@@ -572,7 +589,7 @@ function addOrEditUnion(members, children, dom, status) {
 
 function editFamilyMember(member) {
   $(".add").hide();
-  showAddEditDialog = true;
+  Session.set("showAddEditDialog", true);
   $(".add-member-form").show();
   $(".add-member-form").find("legend").text("Edit a family member");
   Session.set("current_member", member);
@@ -585,10 +602,8 @@ function editFamilyMember(member) {
 }
 
 function alert(message) {
-  $("#main-alert").show();
-  $("#main-alert").text(message);
-  mainAlertText = message;
-  showMainAlert = true;
+  Session.set("mainAlertText", message);
+  Session.set("showMainAlert", true);
 }
 
 function fillInUsername() {
@@ -614,11 +629,10 @@ function addAddEditDialog() {
     if (error === undefined) {
       Session.set("current_member", result.member);
       $(".add").hide();
-      showAddEditDialog = true;
-      showUserPhotoEdit = false;
+      Session.set("showAddEditDialog", true);
+      $(".user-photo-edit").hide();
       $(".add-member-form").show();
       $(".user-photo-container").hide();
-      handleRelationships();
     }
   });
 }
@@ -664,6 +678,8 @@ function handleRelationships() {
     } else {
       $(".add-member-form").find(".sibling-field").remove();
     }
+  } else {
+    hideSpousalFields();
   }
 }
 
@@ -675,7 +691,7 @@ function hideSpousalFields() {
 
 function closeAddEditDialog() {
   $(".add").show();
-  showAddEditDialog = false;
+  Session.set("showAddEditDialog", false);
   $(".add-member-form").hide();
   Session.set("relationships", undefined);
 }

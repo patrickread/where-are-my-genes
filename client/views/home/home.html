@@ -1,8 +1,10 @@
 <template name="home">
   <section class="tree">
-  		<div class="alert-spacer">
-  			{{> alert}}
-  		</div>
+  		{{#if showAlertDialog}}
+	  		<div class="alert-spacer">
+	  			{{> alert}}
+	  		</div>
+  		{{/if}}
   		{{#if currentUser}}
   			<div class="tree-main">
   				{{#each members}}
@@ -15,7 +17,9 @@
 			</canvas>
 	    {{/if}}
 	</section>
-	{{> addEditDialog}}
+	{{#if showAddEditDialog}}
+		{{> addEditDialog}}
+	{{/if}}
 </template>
 
 <template name="member">
@@ -33,7 +37,7 @@
 			</div>
 			<div class="member-info-line">
 				<span class="member-info-label">m</span>
-				<span>{{date_of_birth_string}}</span>
+				<span>{{date_of_marriage_string}}</span>
 			</div>
 		</div>
 		<div>{{dateInfo}}</div>
