@@ -35,19 +35,17 @@
 				<span class="member-info-label">b</span>
 				<span>{{date_of_birth_string}}</span>
 			</div>
-			<div class="member-info-line">
-				<span class="member-info-label">m</span>
-				<span>{{date_of_marriage_string}}</span>
+			{{#if hasMarriage}}
+				<div class="member-info-line">
+					<span class="member-info-label">m</span>
+					<span>{{date_of_marriage_string}}</span>
+				</div>
+			{{/if}}
+			<div class="member-info-area-buttons">
+				<button class="edit" />
+				<button class="add" />
 			</div>
 		</div>
-		<div>{{dateInfo}}</div>
-		<div>
-			<button class="btn btn-info edit">Edit</button>
-		</div>
-		<button class="add-new-member addon-top" alt="Add a new family member!" />
-		<button class="add-new-member addon-right" alt="Add a new family member!" />
-		<button class="add-new-member addon-bottom" alt="Add a new family member!" />
-		<button class="add-new-member addon-left" alt="Add a new family member!" />
 	</div>
 </template>
 
@@ -135,21 +133,17 @@
 
 <template name="addonDrillDown">
 	<div class="addon-drill-down">
-		{{#if directionLeftOrRight}}
-			<div>
-				<button id="add-spouse" class="btn btn-info">Add spouse</button>
-			</div>
-			<div>
-				<button id="add-sibling" class="btn btn-info">Add sibling</button>
-			</div>
-		{{else}}
-			{{#if directionTop}}
-				<div>Add parent</div>
-			{{else}}
-				{{#if directionBottom}}
-					<div>Add child</div>
-				{{/if}}
-			{{/if}}
-		{{/if}}
+		<div>
+			<button id="add-parent" class="btn btn-info">Add parent</button>
+		</div>
+		<div>
+			<button id="add-sibling" class="btn btn-info">Add sibling</button>
+		</div>
+		<div>
+			<button id="add-spouse" class="btn btn-info">Add spouse</button>
+		</div>
+		<div>
+			<button id="add-child" class="btn btn-info">Add child</button>
+		</div>
 	</div>
 </template>

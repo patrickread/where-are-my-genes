@@ -82,20 +82,8 @@ if (Meteor.isClient) {
       editFamilyMember(this);
       return false;
     },
-    'click .addon-right' : function() {
-      directionalAddClicked(this, "right");
-      return false;
-    },
-    'click .addon-left' : function() {
-      directionalAddClicked(this, "left");
-      return false;
-    },
-    'click .addon-top' : function() {
-      directionalAddClicked(this, "top");
-      return false;
-    },
-    'click .addon-bottom' : function() {
-      directionalAddClicked(this, "bottom");
+    'click .add' : function() {
+      addButtonClicked(this);
       return false;
     }
   });
@@ -106,25 +94,40 @@ if (Meteor.isClient) {
       return false;
     },
     'click #add-sibling' : function() {
-      var parents = Session.get("sourceMember").parents;
-      if (parents !== undefined) {
-        Session.set("relationships", {parents: parents});
-      } else {
-        Session.set("relationships", {sibling: {member: Session.get("sourceMember")}});
+      var member = Session.get("sourceMember");
+      if (member !== undefined) {
+        var unions = findUnionsForMemberAsChild(member._id);
+        if (unions.length > 0) {
+          Session.set("relationships", {childOfUnion: unions[0]});
+        } else {
+          Session.set("relationships", {siblings: [ Session.get("sourceMember") ]});
+        }
+        addAddEditDialog();
       }
-      addAddEditDialog();
+
       return false;
     },
+    'click #add-parent' : function() {
+      var member = Session.get("sourceMember");
+      if (member !== undefined) {
+        var unions = findUnionsForMemberAsChild(member._id);
+        if (unions.length > 0) {
+          Session.set("relationships", {union: unions[0]});
+        } else {
+          Session.set("relationships", {children: [ Session.get("sourceMember") ]});
+        }
+        addAddEditDialog();
+      }
+
+      return false;
+    }
   });
 }
 
-function directionalAddClicked(member, direction) {
-  if ($(".tree-main").find(".addon-box").length > 0 && 
-    Session.get("addon-direction") === direction) {
+function addButtonClicked(member) {
+  if ($(".tree-main").find(".addon-box").length > 0) {
     removeAddOnBox();
-    Session.set("addon-direction", undefined);
   } else {
-    Session.set("addon-direction", direction);
     Session.set("sourceMember", member);
     // add in the box for the member at this position
     addInAddOnBox(member._id, member.x_pos, member.y_pos);
@@ -156,48 +159,10 @@ function addInAddOnBox(memberID, x_pos, y_pos) {
   $("#" + memberID).find(".addon-box").append(fullBox);
 
   // adjust the position
-  repositionAddOnBox(memberID, x_pos, y_pos);
-}
-
-function repositionAddOnBox(memberID, x_pos, y_pos) {
   var width = parseInt($("#" + memberID).css("width"));
   var height = parseInt($("#" + memberID).css("height"));
-
-  if (Session.get("addon-direction") !== undefined) {
-    if (Session.get("addon-direction") === "right") {
-      var boxHeight = parseInt($("#" + memberID).find(".addon-box").css("height"));
-      $("#" + memberID).find(".addon-box").css("top", height/2 - boxHeight/2);
-      $("#" + memberID).find(".addon-box").css("left", 20 + width);
-    } else if (Session.get("addon-direction") === "left") {
-      var boxWidth = parseInt($(".tree-main").find(".addon-box").css("width"));
-      $(".tree-main").find(".addon-box").css("top", 20 + y_pos + height/2);
-      $(".tree-main").find(".addon-box").css("left", x_pos - boxWidth - 20);
-    } else if (Session.get("addon-direction") === "top") {
-      var boxHeight = parseInt($(".tree-main").find(".addon-box").css("height"));
-      $(".tree-main").find(".addon-box").css("top", y_pos - boxHeight - 20);
-      $(".tree-main").find(".addon-box").css("left", 20 + x_pos + width/2);
-    } else if (Session.get("addon-direction") === "bottom") {
-      var boxWidth = parseInt($(".tree-main").find(".addon-box").css("width"));
-      $(".tree-main").find(".addon-box").css("top", 30 + y_pos + height);
-      $(".tree-main").find(".addon-box").css("left", 10 + x_pos + width/2 - boxWidth/2);
-    }
-  }
-}
-
-Template.addonDrillDown.directionLeftOrRight = function () {
-  return Session.get("addon-direction") !== undefined && 
-      (Session.get("addon-direction") === "left" || 
-      Session.get("addon-direction") === "right");
-}
-
-Template.addonDrillDown.directionTop = function () {
-  return Session.get("addon-direction") !== undefined && 
-      Session.get("addon-direction") === "top";
-}
-
-Template.addonDrillDown.directionBottom = function () {
-  return Session.get("addon-direction") !== undefined && 
-      Session.get("addon-direction") === "bottom";
+  $("#" + memberID).find(".addon-box").css("top", height + "px");
+  $("#" + memberID).find(".addon-box").css("left", (width - 70) + "px");
 }
 
 Template.home.rendered = function () {
@@ -217,6 +182,14 @@ Template.home.rendered = function () {
   for (var i=0; i<treeLines.length; i++) {
     drawLine(treeLines[i]);
   }
+
+  $( ".tree-main" ).scroll(function() {
+    var left = $(".tree-main").scrollLeft();
+    var top = $(".tree-main").scrollTop();
+    //$("#tree-canvas").scrollTo(left, top);
+    $("#tree-canvas").css("left", (-1 * left) + "px");
+    $("#tree-canvas").css("top", (-1 * top) + "px");
+  });
 };
 
 Template.home.showAddEditDialog = function () {
@@ -237,13 +210,22 @@ Template.home.members = function () {
   unions = Unions.find().fetch();
   for (var i=0; i<members.length; i++) {
     if (members[i].first_name === undefined) {
-      // junk data, remove from list
+      // junk data, remove from list, and from DB
+      Members.remove(members[i]._id);
       members.splice(i, 1);
       i--;
     }
+
+    // add in unions for member
+    members[i].memberOf = findUnionsForMember(members[i]._id);
+    members[i].childOf = findUnionsForMemberAsChild(members[i]._id);
+
     members[i].date_of_birth_string = getDateString(members[i].date_of_birth);
-    members[i].date_of_marriage_string = 
-      getDateString(findLatestWeddingDateForMember(members[i]));
+    members[i].date_of_marriage = findLatestWeddingDateForMember(members[i]);
+    members[i].date_of_marriage_string = getDateString(members[i].date_of_marriage);
+    members[i].hasMarriage = (members[i].date_of_marriage !== undefined && 
+                              members[i].date_of_marriage.getTime() 
+                                !== 0);
   }
   placeMembers(members);
   return members;
@@ -251,10 +233,9 @@ Template.home.members = function () {
 
 function findLatestWeddingDateForMember(member) {
   var latestDate;
-  var memberUnions = findUnionsForMember(member._id);
-  for (var i=0; i<memberUnions.length; i++) {
-    if (latestDate === undefined || memberUnions[i].date_of_marriage > latestDate) {
-      latestDate = memberUnions[i].date_of_marriage;
+  for (var i=0; i<member.memberOf.length; i++) {
+    if (latestDate === undefined || member.memberOf[i].date_of_marriage > latestDate) {
+      latestDate = member.memberOf[i].date_of_marriage;
     }
   }
 
@@ -286,12 +267,14 @@ Template.addEditDialog.member = function () {
     var member = Session.get("current_member");
     // find any current changes to this member
     member = Members.find(member._id).fetch()[0];
-    member.date_of_birth_string = getDateString(member.date_of_birth);
-    member.date_of_death_string = getDateString(member.date_of_death);
+    if (member !== undefined) {
+      member.date_of_birth_string = getDateString(member.date_of_birth);
+      member.date_of_death_string = getDateString(member.date_of_death);
 
-    if (member.photo_url !== undefined) {
-      $(".user-photo-container").show();
-      $("#user_photo").attr('src', member.photo_url);
+      if (member.photo_url !== undefined) {
+        $(".user-photo-container").show();
+        $("#user_photo").attr('src', member.photo_url);
+      }
     }
 
     // add back into the session variable from the db
@@ -309,11 +292,33 @@ function placeMembers(members) {
   var x = 10;
   var y = 10;
   for (var i=0; i<members.length; i++) {
-    if (members[i].parents === null || members[i].parents === undefined) {
+    if (isOnFirstTier(members[i])) {
       positionMember(members, members[i], {xValue: x}, y);
       x += familyMemberWidth + familyMemberMargin;
     }
   }
+}
+
+function isOnFirstTier(member) {
+  if (member.childOf === undefined || member.childOf.length === 0) {
+    var spouseUnions = member.memberOf;
+    for (var i=0; i<spouseUnions.length; i++) {
+      for (var j=0; j<spouseUnions[i].members.length; j++) {
+        if (spouseUnions[i].members[j] !== member._id) {
+          var spouseMember = findMemberById(spouseUnions[i].members[j]);
+          if (spouseMember !== undefined) {
+            if (spouseMember.childOf !== undefined && spouseMember.childOf.length !== 0) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  return false;
 }
 
 // The x value needs to be passed by reference, so I'm using 
@@ -329,24 +334,23 @@ function positionMember(members, theMember, x, y) {
 
   if (theMember.x_pos === undefined && theMember.y_pos === undefined) {
     var spouseIDs = [];
-    var foundUnions = findUnionsForMember(theMember._id);
     var originalX = x.xValue;
-    if (foundUnions !== undefined) {
-      for (var i=0; i<foundUnions.length; i++) {
-        for (var j=0; j<foundUnions[i].members.length; j++) {
-          if (foundUnions[i].members[j] !== theMember._id) {
+    if (theMember.memberOf !== undefined) {
+      for (var i=0; i<theMember.memberOf.length; i++) {
+        for (var j=0; j<theMember.memberOf[i].members.length; j++) {
+          if (theMember.memberOf[i].members[j] !== theMember._id) {
             //members = removeFromMembers(members, foundUnions[i].members[j]);
-            spouseIDs.push(foundUnions[i].members[j]);
+            spouseIDs.push(theMember.memberOf[i].members[j]);
           }
         }
 
-        var children = foundUnions[i].children;
+        var children = theMember.memberOf[i].children;
         if (children !== undefined && children !== null) {
           for (var i=0; i<children.length; i++) {
-            x = {xValue: x.xValue + familyMemberWidth + familyMemberMargin};
-            positionMember(members, 
-              children[i],
-              x.xValue,
+            var child = findMemberById(children[i]);
+            x.xValue = positionMember(members, 
+              child,
+              x,
               y + familyMemberHeight + familyMemberMargin);
           }
         }
@@ -355,7 +359,7 @@ function positionMember(members, theMember, x, y) {
 
     //theMember.x_pos = ((x.xValue - originalX) / 2) + originalX;
     //theMember.y_pos = y;
-    var availableLength = x.xValue - originalX + (familyMemberWidth + familyMemberMargin);
+    var availableLength = x.xValue - originalX;
     var neededLength = (spouseIDs.length + 1) * (familyMemberWidth + familyMemberMargin);
     var startPos = originalX;
     if (availableLength > neededLength) {
@@ -363,13 +367,15 @@ function positionMember(members, theMember, x, y) {
     }
     theMember.x_pos = startPos;
     theMember.y_pos = y;
-    var spouses = findMemberSpouses(members, spouseIDs);
+    var spouses = findMembersByIds(spouseIDs);
     members = removeFromMembers(members, spouseIDs);
     for (var i=0; i<spouses.length; i++) {
       spouses[i].x_pos = startPos + ((familyMemberWidth + familyMemberMargin) * (i+1));
       spouses[i].y_pos = y;
       createSpousalLine(theMember, spouses[i]);
     }
+
+    return x.xValue + neededLength;
   }
 }
 
@@ -435,6 +441,17 @@ function findUnionsForMember(memberID) {
   return foundUnions;
 }
 
+function findUnionsForMemberAsChild(memberID) {
+  var foundUnions = [];
+  for (var i=0; i<unions.length; i++) {
+    if (unions[i].children !== null && 
+        unions[i].children.indexOf(memberID) != -1) {
+      foundUnions.push(unions[i]);
+    }
+  }
+  return foundUnions;
+}
+
 function findMemberChildren(members, memberID) {
   var children = [];
   for (var i=0; i<members.length; i++) {
@@ -448,26 +465,25 @@ function findMemberChildren(members, memberID) {
   return children;
 }
 
-function findMemberSpouses(members, spouseIDs) {
-  var spouses = [];
-  var spouseIndices = [];
+function findMembersByIds(memberIDs) {
+  var foundMembers = [];
   for (var i=0; i<members.length; i++) {
-    for (var j=0; j<spouseIDs.length; j++) {
-      if (members[i]._id === spouseIDs[j]) {
-        spouses.push(members[i]);
-        spouseIDs.splice(j, 1);
+    for (var j=0; j<memberIDs.length; j++) {
+      if (members[i]._id === memberIDs[j]) {
+        foundMembers.push(members[i]);
+        memberIDs.splice(j, 1);
         j--;
       }
     }
   }
 
-  return spouses;
+  return foundMembers;
 }
 
-function findMemberById(members, id) {
-  for (member in members) {
-    if (member._id === id) {
-      return member;
+function findMemberById(id) {
+  for (var i=0; i<members.length; i++) {
+    if (members[i]._id === id) {
+      return members[i];
     }
   }
 
@@ -511,22 +527,29 @@ function addFamilyMember(parent_ids) {
             addOrEditUnion(unionMembers, null, 
               relationships.spouse.date_of_marriage, 
               relationships.spouse.status);
-
-            // if (member.spouses === undefined) {
-            //   member.spouses = [];
-            // }
-
-            // if (member.parents === undefined) {
-            //   member.parents = [];
-            // }
-            // member.spouses.push(relationships.spouse._id);
-            // member.parents = relationships.parents;
           }
 
           if (relationships.parents !== undefined) {
             var unionMembers = relationships.parents;
-            var children = [ member._id ];
+            var children = [ member ];
             addOrEditUnion(unionMembers, children, null, null);
+          }
+
+          if (relationships.siblings !== undefined) {
+            var unionMembers = [];
+            var children = [];
+            for (var i=0; i<relationships.siblings.length; i++) {
+              children.push(relationships.siblings[0]._id);
+            }
+            children.push(member._id);
+            addOrEditUnion(unionMembers, children, null, null);
+          }
+
+          if (relationships.union !== undefined) {
+            var unionMembers = [];
+            unionMembers.push(member._id);
+            addOrEditUnion(unionMembers, relationships.union.children,
+              null, null);
           }
         }
 
@@ -638,6 +661,12 @@ function addAddEditDialog() {
 }
 
 function handleRelationships() {
+  // reset all relationship form fields
+  hideSpousalFields();
+  $(".add-member-form").find(".siblings-field").remove();
+  $(".add-member-form").find(".parents-field").remove();
+  $(".add-member-form").find(".children-field").remove();
+
   if (Session.get("relationships") !== undefined) {
     var relationships = Session.get("relationships");
     if (relationships.spouse !== undefined) {
@@ -647,39 +676,63 @@ function handleRelationships() {
               relationships.spouse.member.last_name);
       $(".add-member-form").find(".married-date-field").show();
       $(".add-member-form").find(".spouse-status-field").show();
-    } else {
-      hideSpousalFields();
     }
 
-    if (relationships.parents !== undefined && relationships.parents.length > 0) {
+    // add parents or siblings field
+    if (relationships.childOfUnion !== undefined) {
       var html = "<div class='form-field parents-field'>" +
                     "<label for='parents'>Parents</label>" + 
                     "<span id='parents'>";
-      for (var i=0; i<relationships.parents.length; i++) {
-        html += relationships.parents[i].first_name + " " + 
-                relationships.parents[i].last_name + ", ";
+      for (var i=0; i<relationships.childOfUnion.members.length; i++) {
+        var member = findMemberById(relationships.childOfUnion.members[i]);
+        html += member.first_name + " " + 
+                member.last_name + ", ";
       }
       html = html.substring(0, html.length - 2);
       html += "</span>" + 
                 "</div>";
-      $(".add-member-form").find(".parents-field").remove();
       $(".add-member-form").find(".inner-form").prepend(html);
-    } else {
-      $(".add-member-form").find(".parents-field").remove();
+    } else if (relationships.siblings !== undefined) {
+      var html = "<div class='form-field siblings-field'>" +
+                    "<label for='siblings'>Siblings</label>" + 
+                    "<span id='siblings'>";
+      for (var i=0; i<relationships.siblings.length; i++) {
+        html += relationships.siblings[i].first_name + " " + 
+                relationships.siblings[i].last_name + ", ";
+      }
+      html = html.substring(0, html.length - 2);
+      html += "</span>" + 
+                "</div>";
+      $(".add-member-form").find(".inner-form").prepend(html);
     }
 
-    if (relationships.sibling !== undefined) {
-      var html = "<div class='form-field sibling-field'>" +
-                    "<label for='sibling'>Sibling</label>" + 
-                    "<span id='sibling'>" + relationships.sibling.first_name + " " + relationships.sibling.last_name + "</span>" + 
+    // add children field
+    if (relationships.union !== undefined) {
+      var html = "<div class='form-field children-field'>" +
+                    "<label for='children'>Children</label>" + 
+                    "<span id='children'>";
+      for (var i=0; i<relationships.union.children.length; i++) {
+        var member = findMemberById(relationships.union.children[i]);
+        html += member.first_name + " " + 
+                member.last_name + ", ";
+      }
+      html = html.substring(0, html.length - 2);
+      html += "</span>" + 
                 "</div>";
-      $(".add-member-form").find(".sibling-field").remove();
       $(".add-member-form").find(".inner-form").prepend(html);
-    } else {
-      $(".add-member-form").find(".sibling-field").remove();
+    } else if (relationships.children !== undefined) {
+      var html = "<div class='form-field children-field'>" +
+                    "<label for='children'>Children</label>" + 
+                    "<span id='children'>";
+      for (var i=0; i<relationships.children.length; i++) {
+        html += relationships.children[i].first_name + " " + 
+                relationships.children[i].last_name + ", ";
+      }
+      html = html.substring(0, html.length - 2);
+      html += "</span>" + 
+                "</div>";
+      $(".add-member-form").find(".inner-form").prepend(html);
     }
-  } else {
-    hideSpousalFields();
   }
 }
 
