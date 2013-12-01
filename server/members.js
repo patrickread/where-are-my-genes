@@ -1,6 +1,10 @@
+var familyMemberWidth = 320;
+var familyMemberHeight = 180;
+var familyMemberMargin = 60;
+var unions;
+
 Meteor.publish("members", function () {
-  return Members.find(
-    {user_id: this.userId});
+  return Members.find({user_id: this.userId});
 });
 
 Meteor.publish("unions", function () {
