@@ -12,16 +12,6 @@ Meteor.publish("unions", function () {
     {user_id: this.userId});
 });
 
-if (Meteor.isServer) {
-  Meteor.startup(function () {
-    Meteor.call("S3config",{
-      key: 'AKIAJNMWAJRYWKMKRQIQ',
-      secret: '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',
-      bucket: 'jameskpolk'
-    });
-  });
-}
-
 Meteor.methods({
   addFamilyMember: function (member, relationships) {
     console.log("member! " + (member._id || ""));
